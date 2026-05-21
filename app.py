@@ -4,37 +4,36 @@ import plotly.graph_objects as go
 import math
 import pandas as pd
 
-st.title("Tankvolymskalkylator med korrekt 3D-visualisering")
+st.title("Tankvolymskalkylator – korrekt 3D-visualisering")
 
 # --- INPUTS ---
 botten_form = st.selectbox("Bottenform", ["Platt", "Konisk", "Sfärisk", "Elliptisk"])
 topp_form = st.selectbox("Toppform", ["Platt", "Konisk", "Sfärisk", "Kupol"])
 r = st.slider("Radie (m)", 0.1, 5.0, 1.0)
-h_cylinder = st.slider("Cylindervolym höjd (m)", 0.1, 10.0, 2.0)
+h_cylinder = st.slider("Cylinderhöjd (m)", 0.1, 10.0, 2.0)
 h_botten = st.slider("Bottenhöjd (m)", 0.0, 5.0, 0.5)
 h_topp = st.slider("Topphöjd (m)", 0.0, 5.0, 0.5)
 
-# --- VOLYMBERÄKNING ---
+# --- Volymberäkning ---
 def berakna_volym(botten_form, topp_form, r, h_cylinder, h_botten, h_topp):
     V_botten = 0
     V_topp = 0
-
-    if botten_form == 'Platt':
+    if botten_form == "Platt":
         V_botten = math.pi * r**2 * h_botten
-    elif botten_form == 'Konisk':
+    elif botten_form == "Konisk":
         V_botten = (1/3) * math.pi * r**2 * h_botten
-    elif botten_form == 'Sfärisk':
+    elif botten_form == "Sfärisk":
         V_botten = (2/3) * math.pi * r**3
-    else:  # Elliptisk
+    else:
         V_botten = (2/3) * math.pi * r**2 * h_botten
 
-    if topp_form == 'Platt':
+    if topp_form == "Platt":
         V_topp = math.pi * r**2 * h_topp
-    elif topp_form == 'Konisk':
+    elif topp_form == "Konisk":
         V_topp = (1/3) * math.pi * r**2 * h_topp
-    elif topp_form == 'Sfärisk':
+    elif topp_form == "Sfärisk":
         V_topp = (2/3) * math.pi * r**3
-    else:  # Kupol
+    else:
         V_topp = (2/3) * math.pi * r**2 * h_topp
 
     V_cylinder = math.pi * r**2 * h_cylinder
@@ -43,11 +42,11 @@ def berakna_volym(botten_form, topp_form, r, h_cylinder, h_botten, h_topp):
 V_total = berakna_volym(botten_form, topp_form, r, h_cylinder, h_botten, h_topp)
 st.subheader(f"Total tankvolym: {V_total:.2f} m³")
 
-# --- FUNKTION FÖR ATT SKAPA YTA ---
-def skapa_yta(form, r, höjd, z_offset=0, typ="botten"):
+# --- Funktion för att generera yta ---
+def generera_yta(form, r, höjd, z_offset=0, position="botten"):
     theta = np.linspace(0, 2*np.pi, 50)
     if form == "Platt":
-        z = np.linspace(0, höjd, 5)
+        z = np.linspace(0, höjd, 10)  # minst 10 lager för Surface
         theta, z = np.meshgrid(theta, z)
         x = r * np.cos(theta)
         y = r * np.sin(theta)
@@ -55,7 +54,7 @@ def skapa_yta(form, r, höjd, z_offset=0, typ="botten"):
     elif form == "Konisk":
         z = np.linspace(0, höjd, 20)
         theta, z = np.meshgrid(theta, z)
-        if typ == "botten":
+        if position == "botten":
             x = r * (z / höjd) * np.cos(theta)
             y = r * (z / höjd) * np.sin(theta)
             z += z_offset
@@ -68,7 +67,7 @@ def skapa_yta(form, r, höjd, z_offset=0, typ="botten"):
         phi, theta = np.meshgrid(phi, theta)
         x = r * np.sin(phi) * np.cos(theta)
         y = r * np.sin(phi) * np.sin(theta)
-        if typ == "botten":
+        if position == "botten":
             z = z_offset - r * np.cos(phi)
         else:
             z = z_offset + r * (1 - np.cos(phi))
@@ -86,25 +85,25 @@ def skapa_yta(form, r, höjd, z_offset=0, typ="botten"):
         z += z_offset
     return x, y, z
 
-# --- 3D VISUALISERING ---
+# --- Skapa 3D-graf ---
 fig = go.Figure()
 
 # Cylinder
-x_cyl, y_cyl, z_cyl = skapa_yta("Platt", r, h_cylinder, z_offset=h_botten, typ="cylinder")
-fig.add_trace(go.Surface(x=x_cyl, y=y_cyl, z=z_cyl, colorscale='Blues', opacity=0.7))
+x_cyl, y_cyl, z_cyl = generera_yta("Platt", r, h_cylinder, z_offset=h_botten, position="cylinder")
+fig.add_trace(go.Surface(x=x_cyl, y=y_cyl, z=z_cyl, colorscale="Blues", opacity=0.7))
 
 # Botten
-x_bot, y_bot, z_bot = skapa_yta(botten_form, r, h_botten, z_offset=0, typ="botten")
-fig.add_trace(go.Surface(x=x_bot, y=y_bot, z=z_bot, colorscale='Reds', opacity=0.7))
+x_bot, y_bot, z_bot = generera_yta(botten_form, r, h_botten, z_offset=0, position="botten")
+fig.add_trace(go.Surface(x=x_bot, y=y_bot, z=z_bot, colorscale="Reds", opacity=0.7))
 
 # Topp
-x_top, y_top, z_top = skapa_yta(topp_form, r, h_topp, z_offset=h_botten + h_cylinder, typ="topp")
-fig.add_trace(go.Surface(x=x_top, y=y_top, z=z_top, colorscale='Greens', opacity=0.7))
+x_top, y_top, z_top = generera_yta(topp_form, r, h_topp, z_offset=h_botten + h_cylinder, position="topp")
+fig.add_trace(go.Surface(x=x_top, y=y_top, z=z_top, colorscale="Greens", opacity=0.7))
 
-fig.update_layout(scene=dict(aspectmode='data'), margin=dict(l=0,r=0,t=0,b=0))
+fig.update_layout(scene=dict(aspectmode="data"), margin=dict(l=0,r=0,t=0,b=0))
 st.plotly_chart(fig, use_container_width=True)
 
-# --- CSV EXPORT ---
+# --- CSV-export ---
 if st.button("Exportera parametrar till CSV"):
     data = {
         "Bottenform": [botten_form],
