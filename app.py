@@ -4,12 +4,12 @@ import plotly.graph_objects as go
 import math
 import pandas as pd
 
-st.title("Tankvolymskalkylator – korrekt 3D med dynamiska reglage")
+st.title("Tankvolymskalkylator – radie följer tank, höjd i z-led")
 
 # --- Inputs ---
 botten_form = st.selectbox("Bottenform", ["Platt", "Konisk", "Sfärisk", "Elliptisk"])
 topp_form = st.selectbox("Toppform", ["Platt", "Konisk", "Sfärisk", "Kupol"])
-r = st.slider("Radie (m)", 0.1, 5.0, 1.0)
+r = st.slider("Tankradie (m)", 0.1, 5.0, 1.0)
 h_cylinder = st.slider("Cylinderhöjd (m)", 0.1, 10.0, 2.0)
 h_botten = st.slider("Bottenhöjd (m)", 0.0, 5.0, 0.5)
 h_topp = st.slider("Topphöjd (m)", 0.0, 5.0, 0.5)
@@ -23,7 +23,7 @@ def berakna_volym(bot, top, r, h_cyl, h_bot, h_top):
     elif bot == "Konisk":
         V_bot = (1/3)*math.pi*r**2*h_bot
     elif bot == "Sfärisk":
-        V_bot = (2/3)*math.pi*h_bot**3  # nu beror på höjd
+        V_bot = (2/3)*math.pi*r**2*h_bot  # radie konstant, höjd i z
     else:
         V_bot = (2/3)*math.pi*r**2*h_bot
 
@@ -32,7 +32,7 @@ def berakna_volym(bot, top, r, h_cyl, h_bot, h_top):
     elif top == "Konisk":
         V_top = (1/3)*math.pi*r**2*h_top
     elif top == "Sfärisk":
-        V_top = (2/3)*math.pi*h_top**3  # nu beror på höjd
+        V_top = (2/3)*math.pi*r**2*h_top  # radie konstant, höjd i z
     else:
         V_top = (2/3)*math.pi*r**2*h_top
 
@@ -42,46 +42,46 @@ def berakna_volym(bot, top, r, h_cyl, h_bot, h_top):
 V_total = berakna_volym(botten_form, topp_form, r, h_cylinder, h_botten, h_topp)
 st.subheader(f"Total tankvolym: {V_total:.2f} m³")
 
-# --- Funktion för att generera yta ---
-def generera_yta(form, radius, höjd, z_offset=0, position="botten"):
+# --- Funktion för 3D-yta ---
+def generera_yta(form, r, höjd, z_offset=0, position="botten"):
     theta = np.linspace(0, 2*np.pi, 50)
     if form=="Platt":
         z = np.linspace(0, höjd, 10)
         theta, z = np.meshgrid(theta, z)
-        x = radius*np.cos(theta)
-        y = radius*np.sin(theta)
+        x = r*np.cos(theta)
+        y = r*np.sin(theta)
         z += z_offset
     elif form=="Konisk":
         z = np.linspace(0, höjd, 20)
         theta, z = np.meshgrid(theta, z)
         if position=="botten":
-            x = radius*(z/höjd)*np.cos(theta)
-            y = radius*(z/höjd)*np.sin(theta)
+            x = r*(z/höjd)*np.cos(theta)
+            y = r*(z/höjd)*np.sin(theta)
             z += z_offset
         else:
-            x = radius*(1-z/höjd)*np.cos(theta)
-            y = radius*(1-z/höjd)*np.sin(theta)
+            x = r*(1 - z/höjd)*np.cos(theta)
+            y = r*(1 - z/höjd)*np.sin(theta)
             z += z_offset
     elif form=="Sfärisk":
         phi = np.linspace(0, np.pi/2, 20)
         phi, theta = np.meshgrid(phi, theta)
-        x = höjd*np.sin(phi)*np.cos(theta)  # radie = höjd för korrekt tjocklek
-        y = höjd*np.sin(phi)*np.sin(theta)
+        x = r*np.sin(phi)*np.cos(theta)
+        y = r*np.sin(phi)*np.sin(theta)
         if position=="botten":
             z = z_offset - höjd*np.cos(phi)
         else:
-            z = z_offset + höjd*(1-np.cos(phi))
+            z = z_offset + höjd*(1 - np.cos(phi))
     elif form=="Elliptisk":
         z = np.linspace(0, höjd, 20)
         theta, z = np.meshgrid(theta, z)
-        x = radius*np.sqrt(z/höjd)*np.cos(theta)
-        y = radius*np.sqrt(z/höjd)*np.sin(theta)
+        x = r*np.sqrt(z/höjd)*np.cos(theta)
+        y = r*np.sqrt(z/höjd)*np.sin(theta)
         z += z_offset
     elif form=="Kupol":
         z = np.linspace(0, höjd, 20)
         theta, z = np.meshgrid(theta, z)
-        x = radius*np.sqrt(z/höjd)*np.cos(theta)
-        y = radius*np.sqrt(z/höjd)*np.sin(theta)
+        x = r*np.sqrt(z/höjd)*np.cos(theta)
+        y = r*np.sqrt(z/höjd)*np.sin(theta)
         z += z_offset
     return x, y, z
 
