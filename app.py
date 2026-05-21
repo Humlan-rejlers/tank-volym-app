@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 import math
 import pandas as pd
 
-st.title("Tankvolymskalkylator med justerbar botten och topp")
+st.title("Tankvolymskalkylator med korrekt 3D-visualisering")
 
 # --- INPUTS ---
 botten_form = st.selectbox("Bottenform", ["Platt", "Konisk", "Sfärisk", "Elliptisk"])
@@ -16,6 +16,9 @@ h_topp = st.slider("Topphöjd (m)", 0.0, 5.0, 0.5)
 
 # --- VOLYMBERÄKNING ---
 def berakna_volym(botten_form, topp_form, r, h_cylinder, h_botten, h_topp):
+    V_botten = 0
+    V_topp = 0
+
     if botten_form == 'Platt':
         V_botten = math.pi * r**2 * h_botten
     elif botten_form == 'Konisk':
@@ -40,81 +43,66 @@ def berakna_volym(botten_form, topp_form, r, h_cylinder, h_botten, h_topp):
 V_total = berakna_volym(botten_form, topp_form, r, h_cylinder, h_botten, h_topp)
 st.subheader(f"Total tankvolym: {V_total:.2f} m³")
 
-# --- 3D VISUALISERING ---
-def skapa_tank():
-    fig = go.Figure()
-    
-    # Cylinder
-    z_cyl = np.linspace(h_botten, h_botten + h_cylinder, 30)
+# --- FUNKTION FÖR ATT SKAPA YTA ---
+def skapa_yta(form, r, höjd, z_offset=0, typ="botten"):
     theta = np.linspace(0, 2*np.pi, 50)
-    theta, z_cyl = np.meshgrid(theta, z_cyl)
-    x_cyl = r * np.cos(theta)
-    y_cyl = r * np.sin(theta)
-    fig.add_trace(go.Surface(x=x_cyl, y=y_cyl, z=z_cyl, colorscale='Blues', opacity=0.7))
-    
-    # --- Botten ---
-    if botten_form == 'Platt':
-        z_bot = np.linspace(0, h_botten, 5)
-        theta_bot = np.linspace(0, 2*np.pi, 50)
-        theta_bot, z_bot = np.meshgrid(theta_bot, z_bot)
-        x_bot = r * np.cos(theta_bot)
-        y_bot = r * np.sin(theta_bot)
-    elif botten_form == 'Konisk':
-        z_bot = np.linspace(0, h_botten, 20)
-        theta_bot = np.linspace(0, 2*np.pi, 50)
-        theta_bot, z_bot = np.meshgrid(theta_bot, z_bot)
-        x_bot = r * (z_bot / h_botten) * np.cos(theta_bot)
-        y_bot = r * (z_bot / h_botten) * np.sin(theta_bot)
-    elif botten_form == 'Sfärisk':
+    if form == "Platt":
+        z = np.linspace(0, höjd, 5)
+        theta, z = np.meshgrid(theta, z)
+        x = r * np.cos(theta)
+        y = r * np.sin(theta)
+        z += z_offset
+    elif form == "Konisk":
+        z = np.linspace(0, höjd, 20)
+        theta, z = np.meshgrid(theta, z)
+        if typ == "botten":
+            x = r * (z / höjd) * np.cos(theta)
+            y = r * (z / höjd) * np.sin(theta)
+            z += z_offset
+        else:
+            x = r * (1 - z / höjd) * np.cos(theta)
+            y = r * (1 - z / höjd) * np.sin(theta)
+            z += z_offset
+    elif form == "Sfärisk":
         phi = np.linspace(0, np.pi/2, 20)
-        theta_bot = np.linspace(0, 2*np.pi, 50)
-        phi, theta_bot = np.meshgrid(phi, theta_bot)
-        x_bot = r * np.sin(phi) * np.cos(theta_bot)
-        y_bot = r * np.sin(phi) * np.sin(theta_bot)
-        z_bot = h_botten - r * np.cos(phi)
-    else:  # Elliptisk
-        z_bot = np.linspace(0, h_botten, 20)
-        theta_bot = np.linspace(0, 2*np.pi, 50)
-        theta_bot, z_bot = np.meshgrid(theta_bot, z_bot)
-        x_bot = r * np.sqrt(z_bot / h_botten) * np.cos(theta_bot)
-        y_bot = r * np.sqrt(z_bot / h_botten) * np.sin(theta_bot)
-    fig.add_trace(go.Surface(x=x_bot, y=y_bot, z=z_bot, colorscale='Reds', opacity=0.7))
-    
-    # --- Topp ---
-    if topp_form == 'Platt':
-        z_top = np.linspace(0, h_topp, 5)
-        theta_top = np.linspace(0, 2*np.pi, 50)
-        theta_top, z_top = np.meshgrid(theta_top, z_top)
-        x_top = r * np.cos(theta_top)
-        y_top = r * np.sin(theta_top)
-        z_top = h_botten + h_cylinder + z_top
-    elif topp_form == 'Konisk':
-        z_top = np.linspace(0, h_topp, 20)
-        theta_top = np.linspace(0, 2*np.pi, 50)
-        theta_top, z_top = np.meshgrid(theta_top, z_top)
-        x_top = r * (1 - z_top / h_topp) * np.cos(theta_top)
-        y_top = r * (1 - z_top / h_topp) * np.sin(theta_top)
-        z_top = h_botten + h_cylinder + z_top
-    elif topp_form == 'Sfärisk':
-        phi = np.linspace(0, np.pi/2, 20)
-        theta_top = np.linspace(0, 2*np.pi, 50)
-        phi, theta_top = np.meshgrid(phi, theta_top)
-        x_top = r * np.sin(phi) * np.cos(theta_top)
-        y_top = r * np.sin(phi) * np.sin(theta_top)
-        z_top = h_botten + h_cylinder + r * (1 - np.cos(phi))
-    else:  # Kupol
-        z_top = np.linspace(0, h_topp, 20)
-        theta_top = np.linspace(0, 2*np.pi, 50)
-        theta_top, z_top = np.meshgrid(theta_top, z_top)
-        x_top = r * np.sqrt(z_top / h_topp) * np.cos(theta_top)
-        y_top = r * np.sqrt(z_top / h_topp) * np.sin(theta_top)
-        z_top = h_botten + h_cylinder + z_top
-    fig.add_trace(go.Surface(x=x_top, y=y_top, z=z_top, colorscale='Greens', opacity=0.7))
-    
-    fig.update_layout(scene=dict(aspectmode='data'), margin=dict(l=0,r=0,t=0,b=0))
-    return fig
+        phi, theta = np.meshgrid(phi, theta)
+        x = r * np.sin(phi) * np.cos(theta)
+        y = r * np.sin(phi) * np.sin(theta)
+        if typ == "botten":
+            z = z_offset - r * np.cos(phi)
+        else:
+            z = z_offset + r * (1 - np.cos(phi))
+    elif form == "Elliptisk":
+        z = np.linspace(0, höjd, 20)
+        theta, z = np.meshgrid(theta, z)
+        x = r * np.sqrt(z / höjd) * np.cos(theta)
+        y = r * np.sqrt(z / höjd) * np.sin(theta)
+        z += z_offset
+    elif form == "Kupol":
+        z = np.linspace(0, höjd, 20)
+        theta, z = np.meshgrid(theta, z)
+        x = r * np.sqrt(z / höjd) * np.cos(theta)
+        y = r * np.sqrt(z / höjd) * np.sin(theta)
+        z += z_offset
+    return x, y, z
 
-st.plotly_chart(skapa_tank(), use_container_width=True)
+# --- 3D VISUALISERING ---
+fig = go.Figure()
+
+# Cylinder
+x_cyl, y_cyl, z_cyl = skapa_yta("Platt", r, h_cylinder, z_offset=h_botten, typ="cylinder")
+fig.add_trace(go.Surface(x=x_cyl, y=y_cyl, z=z_cyl, colorscale='Blues', opacity=0.7))
+
+# Botten
+x_bot, y_bot, z_bot = skapa_yta(botten_form, r, h_botten, z_offset=0, typ="botten")
+fig.add_trace(go.Surface(x=x_bot, y=y_bot, z=z_bot, colorscale='Reds', opacity=0.7))
+
+# Topp
+x_top, y_top, z_top = skapa_yta(topp_form, r, h_topp, z_offset=h_botten + h_cylinder, typ="topp")
+fig.add_trace(go.Surface(x=x_top, y=y_top, z=z_top, colorscale='Greens', opacity=0.7))
+
+fig.update_layout(scene=dict(aspectmode='data'), margin=dict(l=0,r=0,t=0,b=0))
+st.plotly_chart(fig, use_container_width=True)
 
 # --- CSV EXPORT ---
 if st.button("Exportera parametrar till CSV"):
