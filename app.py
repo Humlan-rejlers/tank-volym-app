@@ -42,18 +42,19 @@ st.subheader(f"Total tankvolym: {V_total:.2f} m³")
 
 # --- 3D VISUALISERING ---
 def skapa_tank():
+    fig = go.Figure()
+    
     # Cylinder
-    z_cyl = np.linspace(h_botten, h_botten+h_cylinder, 30)
+    z_cyl = np.linspace(h_botten, h_botten + h_cylinder, 30)
     theta = np.linspace(0, 2*np.pi, 50)
     theta, z_cyl = np.meshgrid(theta, z_cyl)
     x_cyl = r * np.cos(theta)
     y_cyl = r * np.sin(theta)
-    fig = go.Figure()
     fig.add_trace(go.Surface(x=x_cyl, y=y_cyl, z=z_cyl, colorscale='Blues', opacity=0.7))
-
-    # Botten
+    
+    # --- Botten ---
     if botten_form == 'Platt':
-        z_bot = np.linspace(0, h_botten, 3)
+        z_bot = np.linspace(0, h_botten, 5)
         theta_bot = np.linspace(0, 2*np.pi, 50)
         theta_bot, z_bot = np.meshgrid(theta_bot, z_bot)
         x_bot = r * np.cos(theta_bot)
@@ -62,8 +63,8 @@ def skapa_tank():
         z_bot = np.linspace(0, h_botten, 20)
         theta_bot = np.linspace(0, 2*np.pi, 50)
         theta_bot, z_bot = np.meshgrid(theta_bot, z_bot)
-        x_bot = r * (z_bot/h_botten) * np.cos(theta_bot)
-        y_bot = r * (z_bot/h_botten) * np.sin(theta_bot)
+        x_bot = r * (z_bot / h_botten) * np.cos(theta_bot)
+        y_bot = r * (z_bot / h_botten) * np.sin(theta_bot)
     elif botten_form == 'Sfärisk':
         phi = np.linspace(0, np.pi/2, 20)
         theta_bot = np.linspace(0, 2*np.pi, 50)
@@ -75,13 +76,13 @@ def skapa_tank():
         z_bot = np.linspace(0, h_botten, 20)
         theta_bot = np.linspace(0, 2*np.pi, 50)
         theta_bot, z_bot = np.meshgrid(theta_bot, z_bot)
-        x_bot = r * np.sqrt(z_bot/h_botten) * np.cos(theta_bot)
-        y_bot = r * np.sqrt(z_bot/h_botten) * np.sin(theta_bot)
+        x_bot = r * np.sqrt(z_bot / h_botten) * np.cos(theta_bot)
+        y_bot = r * np.sqrt(z_bot / h_botten) * np.sin(theta_bot)
     fig.add_trace(go.Surface(x=x_bot, y=y_bot, z=z_bot, colorscale='Reds', opacity=0.7))
-
-    # Topp
+    
+    # --- Topp ---
     if topp_form == 'Platt':
-        z_top = np.linspace(0, h_topp, 3)
+        z_top = np.linspace(0, h_topp, 5)
         theta_top = np.linspace(0, 2*np.pi, 50)
         theta_top, z_top = np.meshgrid(theta_top, z_top)
         x_top = r * np.cos(theta_top)
@@ -91,8 +92,8 @@ def skapa_tank():
         z_top = np.linspace(0, h_topp, 20)
         theta_top = np.linspace(0, 2*np.pi, 50)
         theta_top, z_top = np.meshgrid(theta_top, z_top)
-        x_top = r * (1 - z_top/h_topp) * np.cos(theta_top)
-        y_top = r * (1 - z_top/h_topp) * np.sin(theta_top)
+        x_top = r * (1 - z_top / h_topp) * np.cos(theta_top)
+        y_top = r * (1 - z_top / h_topp) * np.sin(theta_top)
         z_top = h_botten + h_cylinder + z_top
     elif topp_form == 'Sfärisk':
         phi = np.linspace(0, np.pi/2, 20)
@@ -105,17 +106,17 @@ def skapa_tank():
         z_top = np.linspace(0, h_topp, 20)
         theta_top = np.linspace(0, 2*np.pi, 50)
         theta_top, z_top = np.meshgrid(theta_top, z_top)
-        x_top = r * np.sqrt(z_top/h_topp) * np.cos(theta_top)
-        y_top = r * np.sqrt(z_top/h_topp) * np.sin(theta_top)
+        x_top = r * np.sqrt(z_top / h_topp) * np.cos(theta_top)
+        y_top = r * np.sqrt(z_top / h_topp) * np.sin(theta_top)
         z_top = h_botten + h_cylinder + z_top
     fig.add_trace(go.Surface(x=x_top, y=y_top, z=z_top, colorscale='Greens', opacity=0.7))
-
+    
     fig.update_layout(scene=dict(aspectmode='data'), margin=dict(l=0,r=0,t=0,b=0))
     return fig
 
 st.plotly_chart(skapa_tank(), use_container_width=True)
 
-# --- EXPORT TILL CSV ---
+# --- CSV EXPORT ---
 if st.button("Exportera parametrar till CSV"):
     data = {
         "Bottenform": [botten_form],
