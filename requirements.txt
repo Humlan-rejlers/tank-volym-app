@@ -1,0 +1,5 @@
+Kod
+
+Streamlit
+numpy
+plotly
